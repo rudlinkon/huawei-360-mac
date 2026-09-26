@@ -157,6 +157,8 @@ final class CameraSession: ObservableObject {
             let decoder = H264Decoder()
             var frames = 0, bytes = 0
             var windowStart = Date()
+            var thermalMonitor = ThermalMonitor()
+            var overheated = false
             while !stopFlag {
                 if consumePhotoRequest() { capturePhoto(cam) }
                 guard let f = try cam.nextFrame() else {
@@ -170,21 +172,32 @@ final class CameraSession: ObservableObject {
                         record(pb, pts: pts)
                     }
                 }
+                if let level = thermalMonitor.update(f.thermal) {
+                    addLog("thermal level \(level.rawValue) (\(level))")
+                    ui { self.thermal = level.rawValue }
+                    if let a = level.alert { Notifier.shared.post(title: a.title, body: a.body) }
+                    if level == .overheat { overheated = true; break }
+                }
                 frames += 1
                 bytes += f.h264.count
                 let dt = Date().timeIntervalSince(windowStart)
                 if dt >= 1 {
-                    let fps = Double(frames) / dt, mbps = Double(bytes) * 8 / dt / 1e6, th = f.thermal
-                    ui { self.fps = fps; self.bitrate = mbps; self.thermal = th }
+                    let fps = Double(frames) / dt, mbps = Double(bytes) * 8 / dt / 1e6
+                    ui { self.fps = fps; self.bitrate = mbps }
                     frames = 0; bytes = 0; windowStart = Date()
-                    if th == 2 { addLog("camera overheating — stopping"); break }
                 }
             }
             ui { self.status = "Stopping…" }
             try? cam.stopLiveView()
-            try? cam.closeCommunication()
             decoder.invalidate()
-            ui { self.status = "Disconnected" }
+            if overheated {
+                // Same as the Android app: power the camera off so it can cool down.
+                do { try cam.powerOff(); addLog("camera powered off (overheat)") } catch { addLog("power off failed: \(error)") }
+                ui { self.status = "Camera overheated — powered off" }
+            } else {
+                try? cam.closeCommunication()
+                ui { self.status = "Disconnected" }
+            }
         } catch {
             addLog("error: \(error)")
             ui { self.status = "Error: \(error)" }

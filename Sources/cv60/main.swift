@@ -135,7 +135,7 @@ func run() throws {
         }
 
     case "off":
-        _ = try cam.rawRead(0x01, 0xF0)
+        try cam.powerOff()
         print("power off sent")
 
     default:

@@ -112,6 +112,11 @@ public final class CV60Camera {
         try command(c)
     }
 
+    /// 7A 01 F0 — power the camera off (the Android app does this on overheat).
+    public func powerOff() throws {
+        try command(cdb(0x7A, 0x01, 0xF0))
+    }
+
     /// 7A 03 FF — keep-alive; the app sends it every 500 ms when idle.
     public func keepAlive() throws {
         _ = try scsi.read(cdb(0x7A, 0x03, 0xFF), small: true)

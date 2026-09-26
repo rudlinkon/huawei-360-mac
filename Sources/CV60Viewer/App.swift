@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Needed when launched as a bare SwiftPM executable (no .app bundle).
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+        Notifier.shared.setUp()
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
