@@ -17,6 +17,7 @@ First release: use the Huawei EnVizion 360 (CV60) camera on an Apple silicon Mac
 - `cv60` command-line tool (inside the app bundle): info, raw H.264 dump, MP4 conversion, photo, power off.
 
 ### Notes
-- Apple silicon only. The app is not notarized: on first launch open it via
+- Requires an Apple silicon Mac with macOS 15 or later.
+- The app is not notarized: on first launch open it via
   System Settings → Privacy & Security → "Open Anyway".
 - Bundles libusb (LGPL-2.1) and Syphon (BSD); their licenses are in the app's Resources folder.
