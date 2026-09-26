@@ -8,6 +8,7 @@ struct WebcamView: View {
     static let title = "Huawei 360 Webcam"
 
     @EnvironmentObject private var session: CameraSession
+    @Environment(\.openWindow) private var openWindow
     @AppStorage("webcamMode") private var modeRaw = Int(ViewMode.perspective.rawValue)
 
     private var mode: Binding<ViewMode> {
@@ -22,7 +23,17 @@ struct WebcamView: View {
             .background(Color.black)
             .ignoresSafeArea()
             .background(ChromelessWindow())
+            .onAppear {
+                session.mount = mount
+                session.handleLaunchArguments { openWindow(id: $0) }
+            }
+            .onChange(of: mount) { session.mount = $0 }
             .contextMenu {
+                Button(session.running ? "Disconnect Camera" : "Connect Camera") {
+                    session.running ? session.stop() : session.start(resolution: .r1920)
+                }
+                Button("Show Controls") { openWindow(id: ContentView.windowID) }
+                Divider()
                 Picker("View", selection: mode) {
                     ForEach(ViewMode.allCases) { Text($0.title).tag($0) }
                 }

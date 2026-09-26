@@ -18,7 +18,7 @@ struct CV60ViewerApp: App {
     @StateObject private var session = CameraSession()
 
     var body: some Scene {
-        WindowGroup("Huawei 360 Camera") {
+        WindowGroup("Huawei 360 Camera", id: ContentView.windowID) {
             ContentView()
                 .environmentObject(session)
                 .frame(minWidth: 800, minHeight: 500)
@@ -32,6 +32,7 @@ struct CV60ViewerApp: App {
 }
 
 struct ContentView: View {
+    static let windowID = "main"
     @EnvironmentObject private var session: CameraSession
     @Environment(\.openWindow) private var openWindow
     @State private var mode: ViewMode = .perspective
@@ -58,14 +59,8 @@ struct ContentView: View {
             .onChange(of: mount) { session.mount = $0 }
             .onAppear {
                 session.mount = mount
-                // CV60Viewer --play dump.h264   (replay a `cv60 dump` file without the camera)
+                session.handleLaunchArguments(resolution: resolution) { openWindow(id: $0) }
                 let a = CommandLine.arguments
-                if let i = a.firstIndex(of: "--play"), i + 1 < a.count {
-                    session.play(file: URL(fileURLWithPath: a[i + 1]))
-                }
-                // --connect: start streaming at launch · --webcam: open the OBS output window
-                if a.contains("--connect") && !session.running { session.start(resolution: resolution) }
-                if a.contains("--webcam") { openWindow(id: WebcamView.windowID) }
                 if let i = a.firstIndex(of: "--mode"), i + 1 < a.count, let m = Int32(a[i + 1]), let vm = ViewMode(rawValue: m) {
                     mode = vm
                 }

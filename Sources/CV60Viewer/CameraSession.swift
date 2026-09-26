@@ -69,6 +69,22 @@ final class CameraSession: ObservableObject {
         stopFlag = true
     }
 
+    private var launchHandled = false
+
+    /// Applies launch flags once, from whichever window appears first (macOS may restore only one):
+    /// --play <dump.h264> replay a `cv60 dump` file · --connect start streaming · --webcam open the OBS window.
+    func handleLaunchArguments(resolution: CV60Camera.LiveResolution = .r1920, open: (String) -> Void) {
+        guard !launchHandled else { return }
+        launchHandled = true
+        let a = CommandLine.arguments
+        if let i = a.firstIndex(of: "--play"), i + 1 < a.count {
+            play(file: URL(fileURLWithPath: a[i + 1]))
+        } else if a.contains("--connect") && !running {
+            start(resolution: resolution)
+        }
+        if a.contains("--webcam") { open(WebcamView.windowID) }
+    }
+
     /// Replays a raw H.264 dump (from `cv60 dump`) in a loop — for testing without the camera.
     func play(file: URL) {
         guard thread == nil else { return }
