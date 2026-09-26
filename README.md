@@ -3,11 +3,34 @@
 Unofficial macOS driver + viewer for the Huawei EnVizion 360 Panoramic Camera (CV60),
 built by reverse engineering the Android app `com.huawei.cvIntl60` 1.9.12.
 
+## Install
+
+1. Download `Huawei-360-<version>-macOS-arm64.zip` from the [Releases](../../releases) page
+   (Apple silicon Mac; the minimum macOS version is in the release notes).
+2. Unzip and move **Huawei 360.app** to Applications.
+3. The app is not notarized (no paid Apple Developer ID). The first time, macOS blocks it:
+   open **System Settings → Privacy & Security** and click **Open Anyway**.
+   Or in Terminal: `xattr -dr com.apple.quarantine "/Applications/Huawei 360.app"`.
+4. The command-line tool is inside the app: `"/Applications/Huawei 360.app/Contents/MacOS/cv60" info`.
+
+Homebrew is not needed to run the app; libusb and Syphon are bundled.
+
 ## Build
 
 ```sh
 brew install libusb
-./scripts/make-app.sh          # -> dist/Huawei 360.app, dist/cv60
+./scripts/make-app.sh          # -> dist/Huawei 360.app (self-contained), dist/cv60
+VERSION=0.1.0 ./scripts/package-release.sh   # -> dist/Huawei-360-0.1.0-macOS-arm64.zip
+```
+
+## Releases (CI)
+
+`.github/workflows/build.yml` builds and packages the app on every push and pull request
+(zip attached to the run as an artifact). Pushing a tag `vX.Y.Z` also creates a **draft**
+GitHub release with the zip, using the `## [X.Y.Z]` section of `CHANGELOG.md` as notes:
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0     # then review and publish the draft on GitHub
 ```
 
 ## Use

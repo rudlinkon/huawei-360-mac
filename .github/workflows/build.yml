@@ -1,0 +1,82 @@
+name: Build
+
+on:
+  push:
+    branches: [master]
+    tags: ['v*']
+    paths-ignore: ['**.md']
+  pull_request:
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+permissions:
+  contents: write # create the draft release on tag pushes
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    # Apple silicon runner: the vendored Syphon.xcframework and the app are arm64-only.
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libusb
+        run: brew install libusb
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+
+      - name: Version
+        id: version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+          else
+            echo "version=0.0.0-dev.${GITHUB_RUN_NUMBER}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and package
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: ./scripts/package-release.sh
+
+      - name: Check the bundle is self-contained
+        run: |
+          APP="dist/Huawei 360.app"
+          if otool -L "$APP/Contents/MacOS/CV60Viewer" "$APP/Contents/MacOS/cv60" | grep -q /opt/homebrew; then
+            echo "::error::binary still links Homebrew libusb"; exit 1
+          fi
+          codesign --verify --deep --strict "$APP"
+          plutil -p "$APP/Contents/Info.plist"
+          # cv60 without arguments prints usage (exit 1); a dyld error here would mean a broken bundle.
+          "$APP/Contents/MacOS/cv60" > usage.txt 2>&1 || true
+          cat usage.txt
+          grep -q '^usage: cv60' usage.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Huawei-360-${{ steps.version.outputs.version }}
+          path: |
+            dist/*.zip
+            dist/*.sha256
+          if-no-files-found: error
+
+      - name: Draft GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Release notes = this version's section of CHANGELOG.md
+          awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
+          test -s notes.md || { echo "::error::no CHANGELOG.md section for $VERSION"; exit 1; }
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.sha256 \
+            --draft --title "Huawei 360 for Mac $VERSION" --notes-file notes.md
