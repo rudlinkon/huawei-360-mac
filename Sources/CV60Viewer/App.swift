@@ -109,7 +109,7 @@ struct ContentView: View {
                     .help("Quick grab of the live-view frame")
 
                 Button { openWindow(id: WebcamView.windowID) } label: { Label("Webcam", systemImage: "video") }
-                    .help("Open the clean 16:9 output window for OBS Virtual Camera")
+                    .help("Webcam preview — aim the view that OBS receives via Syphon")
 
                 Spacer()
 

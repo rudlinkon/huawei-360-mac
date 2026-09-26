@@ -19,6 +19,16 @@ final class CameraSession: ObservableObject {
     @Published var photoProgress: String?
 
     let store = FrameStore()
+    /// Webcam feed for OBS (Syphon Client source → OBS Virtual Camera).
+    let syphon: SyphonOutput
+
+    init() {
+        syphon = SyphonOutput(store: store)
+        let d = UserDefaults.standard
+        if let m = ViewMode(rawValue: Int32(d.object(forKey: "webcamMode") as? Int ?? 1)) { syphon.mode = m }
+        if let h = d.object(forKey: "webcamHeight") as? Int { syphon.height = h }
+        syphon.enabled = d.object(forKey: "syphonEnabled") as? Bool ?? true
+    }
     private var thread: Thread?
     private var stopFlag = false
     private let recLock = NSLock()
@@ -43,7 +53,7 @@ final class CameraSession: ObservableObject {
     /// Physical orientation; recordings and snapshots are re-projected to be level.
     var mount: MountOrientation {
         get { recLock.lock(); defer { recLock.unlock() }; return _mount }
-        set { recLock.lock(); _mount = newValue; recLock.unlock() }
+        set { recLock.lock(); _mount = newValue; recLock.unlock(); syphon.mount = newValue }
     }
 
     private func ui(_ block: @escaping () -> Void) { DispatchQueue.main.async(execute: block) }

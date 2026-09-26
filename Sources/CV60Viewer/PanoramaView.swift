@@ -16,6 +16,26 @@ enum ViewMode: Int32, CaseIterable, Identifiable {
     }
 }
 
+/// Where a perspective view looks. Shared between the webcam preview and the Syphon output.
+final class ViewAngles {
+    static let defaultFov: Float = 100 * .pi / 180
+    var yaw: Float = 0
+    var pitch: Float = 0
+    var fov: Float = ViewAngles.defaultFov
+
+    func drag(dx: Float, dy: Float, viewHeight: Float) {
+        let scale = fov / max(viewHeight, 1)
+        yaw -= dx * scale
+        pitch = min(max(pitch + dy * scale, -.pi / 2), .pi / 2)
+    }
+
+    func zoom(_ delta: Float) {
+        fov = min(max(fov * (1 + delta * 0.01), 30 * .pi / 180), 150 * .pi / 180)
+    }
+
+    func reset() { yaw = 0; pitch = 0; fov = Self.defaultFov }
+}
+
 /// Latest decoded frame, shared between the USB thread and the renderer.
 final class FrameStore {
     private let lock = NSLock()
@@ -87,32 +107,10 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
     var store: FrameStore?
     var mode: ViewMode = .perspective
     var mount: MountOrientation = .sideways
-    private var yaw: Float = 0
-    private var pitch: Float = 0
-    private var fov: Float = 100 * .pi / 180
+    var angles = ViewAngles()
     private var queue: MTLCommandQueue?
     private var pipeline: MTLRenderPipelineState?
     private var cache: CVMetalTextureCache?
-    private var timer: Timer?
-
-    /// Draw from our own 30 Hz timer instead of the display link, so the view keeps
-    /// updating while its window is covered (OBS window capture still gets frames).
-    var drivesItself = false {
-        didSet {
-            guard drivesItself != oldValue else { return }
-            timer?.invalidate()
-            timer = nil
-            isPaused = drivesItself
-            enableSetNeedsDisplay = false
-            if drivesItself {
-                let t = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.draw() }
-                RunLoop.main.add(t, forMode: .common)
-                timer = t
-            }
-        }
-    }
-
-    deinit { timer?.invalidate() }
 
     init() {
         let dev = MTLCreateSystemDefaultDevice()
@@ -132,19 +130,15 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
     override var acceptsFirstResponder: Bool { true }
 
     override func mouseDragged(with e: NSEvent) {
-        if e.modifierFlags.contains(.option) { return } // ⌥-drag moves the window (see mouseDown)
-        let scale = fov / Float(max(bounds.height, 1))
-        yaw -= Float(e.deltaX) * scale
-        pitch = min(max(pitch + Float(e.deltaY) * scale, -.pi / 2), .pi / 2)
+        angles.drag(dx: Float(e.deltaX), dy: Float(e.deltaY), viewHeight: Float(bounds.height))
     }
 
     override func scrollWheel(with e: NSEvent) {
-        fov = min(max(fov * (1 + Float(e.scrollingDeltaY) * 0.01), 30 * .pi / 180), 150 * .pi / 180)
+        angles.zoom(Float(e.scrollingDeltaY))
     }
 
     override func mouseDown(with e: NSEvent) {
-        if e.modifierFlags.contains(.option) { window?.performDrag(with: e); return }
-        if e.clickCount == 2 { yaw = 0; pitch = 0; fov = 100 * .pi / 180 }
+        if e.clickCount == 2 { angles.reset() }
     }
 
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -158,7 +152,7 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
             CVMetalTextureCacheCreateTextureFromImage(nil, cache, pb, nil, .bgra8Unorm,
                                                       CVPixelBufferGetWidth(pb), CVPixelBufferGetHeight(pb), 0, &cvTex)
             if let cvTex, let tex = CVMetalTextureGetTexture(cvTex) {
-                var u = Uniforms(yaw: yaw, pitch: pitch, fov: fov,
+                var u = Uniforms(yaw: angles.yaw, pitch: angles.pitch, fov: angles.fov,
                                  aspect: Float(drawableSize.width / max(drawableSize.height, 1)), mode: mode.rawValue,
                                  mount: mount.matrix)
                 enc.setRenderPipelineState(pipeline)
@@ -178,7 +172,7 @@ struct PanoramaView: NSViewRepresentable {
     let store: FrameStore
     let mode: ViewMode
     let mount: MountOrientation
-    var drivesItself = false
+    var angles: ViewAngles?
 
     func makeNSView(context: Context) -> PanoramaMTKView {
         let v = PanoramaMTKView()
@@ -190,6 +184,6 @@ struct PanoramaView: NSViewRepresentable {
     func updateNSView(_ v: PanoramaMTKView, context: Context) {
         v.mode = mode
         v.mount = mount
-        v.drivesItself = drivesItself
+        if let angles { v.angles = angles }
     }
 }

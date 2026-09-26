@@ -48,23 +48,27 @@ wire protocol, but macOS does not attach a storage driver to it). Tested with fi
 port, the panorama therefore arrives rotated 90°. The *Mount* picker (default "Sideways")
 re-projects it on the GPU; recordings and snapshots are saved level (recording re-encodes at 16 Mbit/s).
 
-## Use as a webcam (Zoom / Meet / Teams) via OBS
+## Use as a webcam (Zoom / Meet / Teams) via OBS + Syphon
 
 A native camera device needs a CoreMediaIO Camera Extension, which macOS only loads when
-signed with a paid Apple Developer ID. Until then, OBS Studio's signed virtual camera is the bridge:
+signed with a paid Apple Developer ID. Instead the viewer publishes a **Syphon** server
+("360 Webcam", 1920×1080 or 1280×720, 30 fps) and OBS forwards it through its signed virtual camera.
+No window has to stay visible and no screen-recording permission is needed.
 
 1. `brew install --cask obs`
-2. In Huawei 360: **Connect**, then **Webcam** → a borderless 16:9 window opens.
-   Drag inside it to aim, scroll to zoom, right-click for view mode / size (1280×720, 1920×1080),
-   ⌥-drag to move it. It keeps rendering while covered by other windows (don't minimize it).
-3. In OBS: Sources **+** → **macOS Screen Capture** → Method **Window Capture** →
-   Window **[CV60Viewer] Huawei 360 Webcam**. Right-click the source → Transform → **Fit to screen**.
-   (Grant OBS *Screen & System Audio Recording* permission when asked.)
-4. OBS → **Start Virtual Camera** (first time: allow the extension in System Settings →
-   General → Login Items & Extensions → Camera Extensions).
+2. Start Huawei 360 and **Connect**. Click **Webcam** to open the preview: drag to aim, scroll to zoom,
+   double-click to reset, right-click for view mode / output size / Syphon on-off.
+   The preview can be closed afterwards; the Syphon feed keeps the last aim.
+3. In OBS: Sources **+** → **Syphon Client** → Source **[Huawei 360] 360 Webcam**.
+   Right-click the source → Transform → **Fit to screen**. OBS re-finds it by name after restarts.
+4. OBS → **Start Virtual Camera** (first time: allow it in System Settings → General →
+   Login Items & Extensions → Camera Extensions).
 5. In Zoom / Meet / Teams pick **OBS Virtual Camera**.
 
 Shortcut: `open "dist/Huawei 360.app" --args --connect --webcam`
+
+Syphon (BSD license, `Vendor/Syphon-License.txt`) is vendored as `Vendor/Syphon.xcframework`;
+rebuild it with `scripts/build-syphon.sh` (needs `xcodebuild -downloadComponent MetalToolchain`).
 
 ## Protocol (reverse engineered)
 

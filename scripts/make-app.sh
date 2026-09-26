@@ -2,11 +2,13 @@
 # Builds "Huawei 360.app" (release) into ./dist
 set -euo pipefail
 cd "$(dirname "$0")/.."
-swift build -c release
 APP="dist/Huawei 360.app"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS"
+[ -d Vendor/Syphon.xcframework ] || ./scripts/build-syphon.sh
+swift build -c release
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Frameworks"
 cp .build/release/CV60Viewer "$APP/Contents/MacOS/CV60Viewer"
+cp -R Vendor/Syphon.xcframework/macos-arm64/Syphon.framework "$APP/Contents/Frameworks/"
 cp .build/release/cv60 dist/cv60
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -21,5 +23,6 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
 PLIST
+codesign --force --sign - "$APP/Contents/Frameworks/Syphon.framework"
 codesign --force --sign - "$APP" dist/cv60
 echo "Built: $APP and dist/cv60"

@@ -16,6 +16,11 @@ let package = Package(
             linkerSettings: [.unsafeFlags(["-L/opt/homebrew/lib"])]
         ),
         .executableTarget(name: "cv60", dependencies: ["CV60Kit"]),
-        .executableTarget(name: "CV60Viewer", dependencies: ["CV60Kit"]),
+        .binaryTarget(name: "Syphon", path: "Vendor/Syphon.xcframework"), // scripts/build-syphon.sh
+        .executableTarget(
+            name: "CV60Viewer",
+            dependencies: ["CV60Kit", "Syphon"],
+            linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
+        ),
     ]
 )
