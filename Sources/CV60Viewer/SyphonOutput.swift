@@ -77,7 +77,8 @@ final class SyphonOutput {
         enc.setFragmentBytes(&u, length: MemoryLayout<PanoramaMTKView.Uniforms>.stride, index: 0)
         enc.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: 3)
         enc.endEncoding()
-        server.publishFrameTexture(target, on: cmd, imageRegion: NSRect(x: 0, y: 0, width: w, height: height), flipped: false)
+        // Syphon frames follow OpenGL's bottom-left origin; OBS showed our top-left Metal frame upside down.
+        server.publishFrameTexture(target, on: cmd, imageRegion: NSRect(x: 0, y: 0, width: w, height: height), flipped: true)
         cmd.addCompletedHandler { _ in _ = cvTex }
         cmd.commit()
     }
