@@ -36,6 +36,8 @@ brew install libusb
    - **Snapshot**: quick grab of the live-view frame (1920×960).
    - **Record**: MP4 to `~/Movies/CV60`.
 
+   Launch flags: `--connect` (start streaming), `--webcam` (open the webcam window).
+
    Test without the camera: `CV60Viewer --play some_dump.h264`.
 
 No sudo needed: the camera's interface is vendor class `0xFF` (it speaks the mass-storage
@@ -45,6 +47,24 @@ wire protocol, but macOS does not attach a storage driver to it). Tested with fi
 **Mount orientation.** The camera's "up" axis runs along its USB plug. Plugged into a Mac's side
 port, the panorama therefore arrives rotated 90°. The *Mount* picker (default "Sideways")
 re-projects it on the GPU; recordings and snapshots are saved level (recording re-encodes at 16 Mbit/s).
+
+## Use as a webcam (Zoom / Meet / Teams) via OBS
+
+A native camera device needs a CoreMediaIO Camera Extension, which macOS only loads when
+signed with a paid Apple Developer ID. Until then, OBS Studio's signed virtual camera is the bridge:
+
+1. `brew install --cask obs`
+2. In Huawei 360: **Connect**, then **Webcam** → a borderless 16:9 window opens.
+   Drag inside it to aim, scroll to zoom, right-click for view mode / size (1280×720, 1920×1080),
+   ⌥-drag to move it. It keeps rendering while covered by other windows (don't minimize it).
+3. In OBS: Sources **+** → **macOS Screen Capture** → Method **Window Capture** →
+   Window **[CV60Viewer] Huawei 360 Webcam**. Right-click the source → Transform → **Fit to screen**.
+   (Grant OBS *Screen & System Audio Recording* permission when asked.)
+4. OBS → **Start Virtual Camera** (first time: allow the extension in System Settings →
+   General → Login Items & Extensions → Camera Extensions).
+5. In Zoom / Meet / Teams pick **OBS Virtual Camera**.
+
+Shortcut: `open "dist/Huawei 360.app" --args --connect --webcam`
 
 ## Protocol (reverse engineered)
 

@@ -27,6 +27,18 @@ final class CameraSession: ObservableObject {
     private let corrector = EquirectCorrector()
     private var _mount: MountOrientation = .sideways
     private var photoRequested = false
+    private var activity: NSObjectProtocol?
+
+    /// Keep macOS from throttling (App Nap) while streaming — the webcam window may be in the background.
+    private func setBusy(_ busy: Bool) {
+        if busy, activity == nil {
+            activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiated, .latencyCritical],
+                                                             reason: "Streaming 360 camera")
+        } else if !busy, let a = activity {
+            ProcessInfo.processInfo.endActivity(a)
+            activity = nil
+        }
+    }
 
     /// Physical orientation; recordings and snapshots are re-projected to be level.
     var mount: MountOrientation {
@@ -45,6 +57,7 @@ final class CameraSession: ObservableObject {
         guard thread == nil else { return }
         stopFlag = false
         running = true
+        setBusy(true)
         let t = Thread { [weak self] in self?.run(resolution) }
         t.name = "CV60-USB"
         t.qualityOfService = .userInteractive
@@ -92,7 +105,7 @@ final class CameraSession: ObservableObject {
 
     private func run(_ res: CV60Camera.LiveResolution) {
         defer {
-            ui { self.running = false; self.thread = nil; self.fps = 0 }
+            ui { self.running = false; self.thread = nil; self.fps = 0; self.setBusy(false) }
             finishRecording()
         }
         do {

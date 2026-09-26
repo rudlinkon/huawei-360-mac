@@ -15,17 +15,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct CV60ViewerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    @StateObject private var session = CameraSession()
 
     var body: some Scene {
         WindowGroup("Huawei 360 Camera") {
             ContentView()
+                .environmentObject(session)
                 .frame(minWidth: 800, minHeight: 500)
         }
+        Window(WebcamView.title, id: WebcamView.windowID) {
+            WebcamView()
+                .environmentObject(session)
+        }
+        .defaultSize(width: 1280, height: 720)
     }
 }
 
 struct ContentView: View {
-    @StateObject private var session = CameraSession()
+    @EnvironmentObject private var session: CameraSession
+    @Environment(\.openWindow) private var openWindow
     @State private var mode: ViewMode = .perspective
     @State private var resolution: CV60Camera.LiveResolution = .r1920
     @State private var showLog = false
@@ -55,6 +63,9 @@ struct ContentView: View {
                 if let i = a.firstIndex(of: "--play"), i + 1 < a.count {
                     session.play(file: URL(fileURLWithPath: a[i + 1]))
                 }
+                // --connect: start streaming at launch · --webcam: open the OBS output window
+                if a.contains("--connect") && !session.running { session.start(resolution: resolution) }
+                if a.contains("--webcam") { openWindow(id: WebcamView.windowID) }
                 if let i = a.firstIndex(of: "--mode"), i + 1 < a.count, let m = Int32(a[i + 1]), let vm = ViewMode(rawValue: m) {
                     mode = vm
                 }
@@ -101,6 +112,9 @@ struct ContentView: View {
                 Button { session.snapshot() } label: { Label("Snapshot", systemImage: "camera.viewfinder") }
                     .disabled(!session.running)
                     .help("Quick grab of the live-view frame")
+
+                Button { openWindow(id: WebcamView.windowID) } label: { Label("Webcam", systemImage: "video") }
+                    .help("Open the clean 16:9 output window for OBS Virtual Camera")
 
                 Spacer()
 

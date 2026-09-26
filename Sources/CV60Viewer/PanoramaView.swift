@@ -93,6 +93,26 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
     private var queue: MTLCommandQueue?
     private var pipeline: MTLRenderPipelineState?
     private var cache: CVMetalTextureCache?
+    private var timer: Timer?
+
+    /// Draw from our own 30 Hz timer instead of the display link, so the view keeps
+    /// updating while its window is covered (OBS window capture still gets frames).
+    var drivesItself = false {
+        didSet {
+            guard drivesItself != oldValue else { return }
+            timer?.invalidate()
+            timer = nil
+            isPaused = drivesItself
+            enableSetNeedsDisplay = false
+            if drivesItself {
+                let t = Timer(timeInterval: 1.0 / 30, repeats: true) { [weak self] _ in self?.draw() }
+                RunLoop.main.add(t, forMode: .common)
+                timer = t
+            }
+        }
+    }
+
+    deinit { timer?.invalidate() }
 
     init() {
         let dev = MTLCreateSystemDefaultDevice()
@@ -112,6 +132,7 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
     override var acceptsFirstResponder: Bool { true }
 
     override func mouseDragged(with e: NSEvent) {
+        if e.modifierFlags.contains(.option) { return } // ⌥-drag moves the window (see mouseDown)
         let scale = fov / Float(max(bounds.height, 1))
         yaw -= Float(e.deltaX) * scale
         pitch = min(max(pitch + Float(e.deltaY) * scale, -.pi / 2), .pi / 2)
@@ -122,6 +143,7 @@ final class PanoramaMTKView: MTKView, MTKViewDelegate {
     }
 
     override func mouseDown(with e: NSEvent) {
+        if e.modifierFlags.contains(.option) { window?.performDrag(with: e); return }
         if e.clickCount == 2 { yaw = 0; pitch = 0; fov = 100 * .pi / 180 }
     }
 
@@ -156,6 +178,7 @@ struct PanoramaView: NSViewRepresentable {
     let store: FrameStore
     let mode: ViewMode
     let mount: MountOrientation
+    var drivesItself = false
 
     func makeNSView(context: Context) -> PanoramaMTKView {
         let v = PanoramaMTKView()
@@ -167,5 +190,6 @@ struct PanoramaView: NSViewRepresentable {
     func updateNSView(_ v: PanoramaMTKView, context: Context) {
         v.mode = mode
         v.mount = mount
+        v.drivesItself = drivesItself
     }
 }
