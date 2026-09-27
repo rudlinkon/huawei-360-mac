@@ -3,6 +3,10 @@
 Unofficial macOS driver + viewer for the Huawei EnVizion 360 Panoramic Camera (CV60),
 built by reverse engineering the Android app `com.huawei.cvIntl60` 1.9.12.
 
+> Not affiliated with or endorsed by Huawei. "Huawei" and "EnVizion" are trademarks of Huawei
+> Technologies Co., Ltd. The app icon is a recoloured version of the camera app's icon
+> (`scripts/make-icon.swift <source> Resources/AppIcon.png [hue°]`).
+
 ## Install
 
 One command (installs or updates to the latest release in `/Applications`):
