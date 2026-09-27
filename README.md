@@ -5,15 +5,24 @@ built by reverse engineering the Android app `com.huawei.cvIntl60` 1.9.12.
 
 ## Install
 
-1. Download `Huawei-360-<version>-macOS-arm64.zip` from the [Releases](../../releases) page
-   (Apple silicon Mac; the minimum macOS version is in the release notes).
-2. Unzip and move **Huawei 360.app** to Applications.
-3. The app is not notarized (no paid Apple Developer ID). The first time, macOS blocks it:
-   open **System Settings → Privacy & Security** and click **Open Anyway**.
-   Or in Terminal: `xattr -dr com.apple.quarantine "/Applications/Huawei 360.app"`.
-4. The command-line tool is inside the app: `"/Applications/Huawei 360.app/Contents/MacOS/cv60" info`.
+One command (installs or updates to the latest release in `/Applications`):
 
-Homebrew is not needed to run the app; libusb and Syphon are bundled.
+```sh
+curl -fsSL https://raw.githubusercontent.com/rudlinkon/huawei-360-mac/master/install.sh | bash
+```
+
+- Needs an Apple silicon Mac with macOS 15+. Homebrew is not needed; libusb and Syphon are bundled.
+- Files downloaded with `curl` are not quarantined, so macOS does not show the "unidentified developer"
+  block (the app is ad-hoc signed, not notarized). The script verifies the release checksum and signature.
+- While the repository is private, `curl` cannot fetch it: install and log in to the GitHub CLI
+  (`brew install gh && gh auth login`), then run `bash install.sh` from a clone — it falls back to `gh`.
+- Pin a version: `VERSION=0.1.0 bash install.sh`. Uninstall: `rm -rf "/Applications/Huawei 360.app"`.
+
+Manual install: download `Huawei-360-<version>-macOS-arm64.zip` from [Releases](../../releases),
+unzip, move **Huawei 360.app** to Applications, then allow it once in
+**System Settings → Privacy & Security → Open Anyway** (browser downloads are quarantined).
+
+The command-line tool is inside the app: `"/Applications/Huawei 360.app/Contents/MacOS/cv60" info`.
 
 ## Build
 
