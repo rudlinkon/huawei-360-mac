@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.1] - 2026-09-27
+
+### Added
+- App icon: the camera app's icon, recoloured blue and shaped for macOS
+  (previously the app showed a blank icon).
+- One-line installer / updater:
+  `curl -fsSL https://raw.githubusercontent.com/rudlinkon/huawei-360-mac/master/install.sh | bash`.
+  Installs to /Applications without the Gatekeeper "Open Anyway" step and verifies the checksum.
+
+### Notes
+- Requires an Apple silicon Mac with macOS 15 or later.
+- Not affiliated with or endorsed by Huawei.
+
 ## [0.1.0] - 2026-09-27
 
 First release: use the Huawei EnVizion 360 (CV60) camera on an Apple silicon Mac.
