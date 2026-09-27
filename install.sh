@@ -82,11 +82,13 @@ if [ ! -w "$INSTALL_DIR" ]; then
 fi
 dest="$INSTALL_DIR/$APP_NAME"
 
-if pgrep -f "$APP_NAME/Contents/MacOS/CV60Viewer" >/dev/null; then
+# Quit only the copy being replaced (other copies, e.g. a dev build, keep running).
+running="$dest/Contents/MacOS/CV60Viewer"
+if pgrep -xf "$running( .*)?" >/dev/null; then
     say "Quitting the running app…"
-    osascript -e 'tell application id "local.cv60.viewer" to quit' >/dev/null 2>&1 || true
-    sleep 2
-    pkill -f "$APP_NAME/Contents/MacOS/CV60Viewer" 2>/dev/null || true
+    osascript -e "tell application \"$dest\" to quit" >/dev/null 2>&1 || true
+    for _ in 1 2 3 4 5; do pgrep -xf "$running( .*)?" >/dev/null || break; sleep 1; done
+    pkill -xf "$running( .*)?" 2>/dev/null || true
 fi
 
 if [ -d "$dest" ]; then
