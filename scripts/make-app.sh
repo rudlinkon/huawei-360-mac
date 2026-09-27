@@ -5,7 +5,10 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 VERSION=${VERSION:-0.0.0-dev}
-BUILD_NUMBER=${BUILD_NUMBER:-1}
+BUILD_NUMBER=${BUILD_NUMBER:-1}   # Sparkle compares this (CFBundleVersion): must grow with every release
+# Sparkle feed: appcast.xml attached to the latest published GitHub release; key from `generate_keys --account huawei-360-mac`
+FEED_URL=${FEED_URL:-https://github.com/rudlinkon/huawei-360-mac/releases/latest/download/appcast.xml}
+SPARKLE_PUBLIC_KEY=${SPARKLE_PUBLIC_KEY:-xoia175N2lO0vPGoOqS1MbijK+9QBTjwNDdzcwx/IAA=}
 APP="dist/Huawei 360.app"
 MACOS="$APP/Contents/MacOS"
 FW="$APP/Contents/Frameworks"
@@ -15,6 +18,7 @@ swift build -c release
 mkdir -p "$MACOS" "$FW" "$APP/Contents/Resources"
 cp .build/release/CV60Viewer .build/release/cv60 "$MACOS/"
 cp -R Vendor/Syphon.xcframework/macos-arm64/Syphon.framework "$FW/"
+ditto .build/release/Sparkle.framework "$FW/Sparkle.framework"   # keeps its own signature and XPC services
 
 # Bundle libusb (LGPL-2.1: shipped as a separate, replaceable dylib) and point both binaries at it.
 LIBUSB_PREFIX=$(brew --prefix libusb)
@@ -60,6 +64,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>LSMinimumSystemVersion</key><string>$MIN_OS</string>
   <key>LSApplicationCategoryType</key><string>public.app-category.video</string>
   <key>NSHighResolutionCapable</key><true/>
+  <key>SUFeedURL</key><string>$FEED_URL</string>
+  <key>SUPublicEDKey</key><string>$SPARKLE_PUBLIC_KEY</string>
+  <key>SUEnableAutomaticChecks</key><true/>
+  <key>SUScheduledCheckInterval</key><integer>86400</integer>
 </dict></plist>
 PLIST
 

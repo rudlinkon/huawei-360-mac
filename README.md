@@ -36,11 +36,28 @@ brew install libusb
 VERSION=0.1.0 ./scripts/package-release.sh   # -> dist/Huawei-360-0.1.0-macOS-arm64.zip
 ```
 
+## Auto-update (Sparkle)
+
+The app updates itself with [Sparkle](https://sparkle-project.org): it checks once a day (and via
+**Huawei 360 → Check for Updates…**), shows the release notes and installs + relaunches.
+
+- Feed: `appcast.xml` attached to the latest **published** release
+  (`releases/latest/download/appcast.xml`), so drafts are never offered to users.
+- Every update is signed with an EdDSA key; the app only installs updates whose signature matches
+  the public key in its `Info.plist` (`SUPublicEDKey`).
+- The private key is in the login Keychain (account `huawei-360-mac`) and in the repository secret
+  `SPARKLE_ED_PRIVATE_KEY`, which CI uses to sign the appcast.
+  **Back it up** (e.g. in a password manager):
+  `.build/artifacts/sparkle/Sparkle/bin/generate_keys --account huawei-360-mac -x sparkle-key.txt`.
+  If it is lost, installed apps can no longer update themselves and need one manual reinstall.
+- `CFBundleVersion` is the CI run number, which only grows, so every release is newer than the last.
+
 ## Releases (CI)
 
 `.github/workflows/build.yml` builds and packages the app on every push and pull request
 (zip attached to the run as an artifact). Pushing a tag `vX.Y.Z` also creates a **draft**
-GitHub release with the zip, using the `## [X.Y.Z]` section of `CHANGELOG.md` as notes:
+GitHub release with the zip and the signed Sparkle `appcast.xml`, using the `## [X.Y.Z]` section of
+`CHANGELOG.md` as notes. Publishing the draft is what makes installed apps offer the update:
 
 ```sh
 git tag v0.1.0 && git push origin v0.1.0     # then review and publish the draft on GitHub

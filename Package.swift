@@ -8,6 +8,9 @@ let package = Package(
         .executable(name: "cv60", targets: ["cv60"]),
         .executable(name: "CV60Viewer", targets: ["CV60Viewer"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0"), // auto-update
+    ],
     targets: [
         .systemLibrary(name: "CLibUSB", path: "Sources/CLibUSB"),
         .target(
@@ -19,7 +22,7 @@ let package = Package(
         .binaryTarget(name: "Syphon", path: "Vendor/Syphon.xcframework"), // scripts/build-syphon.sh
         .executableTarget(
             name: "CV60Viewer",
-            dependencies: ["CV60Kit", "Syphon"],
+            dependencies: ["CV60Kit", "Syphon", .product(name: "Sparkle", package: "Sparkle")],
             linkerSettings: [.unsafeFlags(["-Xlinker", "-rpath", "-Xlinker", "@executable_path/../Frameworks"])]
         ),
     ]

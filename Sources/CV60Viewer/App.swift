@@ -17,6 +17,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 struct CV60ViewerApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var delegate
     @StateObject private var session = CameraSession()
+    @StateObject private var updater = AppUpdater()
 
     var body: some Scene {
         WindowGroup("Huawei 360 Camera", id: ContentView.windowID) {
@@ -29,6 +30,11 @@ struct CV60ViewerApp: App {
                 .environmentObject(session)
         }
         .defaultSize(width: 1280, height: 720)
+        .commands {
+            CommandGroup(after: .appInfo) {
+                if updater.isAvailable { CheckForUpdatesCommand(updater: updater) }
+            }
+        }
     }
 }
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0] - 2026-09-27
+
+### Added
+- Automatic updates: the app checks for new versions once a day and from
+  **Huawei 360 → Check for Updates…**, shows what's new and installs the update in place.
+  Updates are signed, so the app only installs genuine releases.
+
+### Notes
+- Coming from 0.1.x: update once with the installer (below). From 0.2.0 on, the app updates itself.
+  `curl -fsSL https://raw.githubusercontent.com/rudlinkon/huawei-360-mac/master/install.sh | bash`
+- Requires an Apple silicon Mac with macOS 15 or later.
+
 ## [0.1.1] - 2026-09-27
 
 ### Added

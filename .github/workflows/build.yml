@@ -45,7 +45,9 @@ jobs:
       - name: Build and package
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          BUILD_NUMBER: ${{ github.run_number }}
+          BUILD_NUMBER: ${{ github.run_number }} # CFBundleVersion: Sparkle compares it, so it must keep growing
+          # Signs the Sparkle appcast (auto-update feed) — only needed for releases.
+          SPARKLE_ED_PRIVATE_KEY: ${{ startsWith(github.ref, 'refs/tags/v') && secrets.SPARKLE_ED_PRIVATE_KEY || '' }}
         run: ./scripts/package-release.sh
 
       - name: Check the bundle is self-contained
@@ -78,5 +80,7 @@ jobs:
           # Release notes = this version's section of CHANGELOG.md
           awk -v v="$VERSION" '$0 ~ "^## \\[" v "\\]" {on=1; next} /^## \[/ {on=0} on' CHANGELOG.md > notes.md
           test -s notes.md || { echo "::error::no CHANGELOG.md section for $VERSION"; exit 1; }
-          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.sha256 \
+          test -f dist/appcast.xml || { echo "::error::appcast.xml missing — is the SPARKLE_ED_PRIVATE_KEY secret set?"; exit 1; }
+          # Installed apps read releases/latest/download/appcast.xml, so they see this update once the draft is published.
+          gh release create "$GITHUB_REF_NAME" dist/*.zip dist/*.sha256 dist/appcast.xml \
             --draft --title "Huawei 360 for Mac $VERSION" --notes-file notes.md
