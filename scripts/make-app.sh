@@ -23,6 +23,16 @@ chmod u+w "$FW/libusb-1.0.0.dylib"
 install_name_tool -id @rpath/libusb-1.0.0.dylib "$FW/libusb-1.0.0.dylib"
 cp "$LIBUSB_PREFIX/COPYING" "$APP/Contents/Resources/libusb-COPYING.txt" 2>/dev/null || true
 cp Vendor/Syphon-License.txt "$APP/Contents/Resources/Syphon-License.txt"
+
+# App icon: Resources/AppIcon.png (1024², drawn by scripts/generate-icon.swift) -> AppIcon.icns
+ICONSET=$(mktemp -d)/AppIcon.iconset
+mkdir -p "$ICONSET"
+for px in 16 32 128 256 512; do
+    sips -z $px $px Resources/AppIcon.png --out "$ICONSET/icon_${px}x${px}.png" >/dev/null
+    sips -z $((px * 2)) $((px * 2)) Resources/AppIcon.png --out "$ICONSET/icon_${px}x${px}@2x.png" >/dev/null
+done
+iconutil -c icns "$ICONSET" -o "$APP/Contents/Resources/AppIcon.icns"
+rm -rf "$(dirname "$ICONSET")"
 for bin in "$MACOS/CV60Viewer" "$MACOS/cv60"; do
     old=$(otool -L "$bin" | awk '/libusb-1\.0/ {print $1; exit}')
     install_name_tool -change "$old" @rpath/libusb-1.0.0.dylib "$bin"
@@ -44,6 +54,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleIdentifier</key><string>local.cv60.viewer</string>
   <key>CFBundleExecutable</key><string>CV60Viewer</string>
   <key>CFBundlePackageType</key><string>APPL</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleShortVersionString</key><string>$VERSION</string>
   <key>CFBundleVersion</key><string>$BUILD_NUMBER</string>
   <key>LSMinimumSystemVersion</key><string>$MIN_OS</string>
